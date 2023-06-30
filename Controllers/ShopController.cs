@@ -1,5 +1,5 @@
 ﻿using BirdPlatForm.UserRespon;
-using BirdPlatFormEcommerce.IEntity;
+using BirdPlatFormEcommerce.DEntity;
 using BirdPlatFormEcommerce.Product;
 using BirdPlatFormEcommerce.ViewModel;
 using Microsoft.AspNetCore.Authorization;
@@ -27,12 +27,12 @@ namespace BirdPlatFormEcommerce.Controllers
     [ApiController]
     public class ShopController : ControllerBase
     {
-        private readonly SwpContextContext _context;
+        private readonly DataswpContext _context;
         private readonly IManageProductService _manageProductService;
         private readonly IWebHostEnvironment _enviroment;
         private readonly IOrderService _oderService;
 
-        public ShopController(SwpContextContext swp, IManageProductService manageProductService, IWebHostEnvironment enviroment,IOrderService orderService )
+        public ShopController(DataswpContext swp, IManageProductService manageProductService, IWebHostEnvironment enviroment,IOrderService orderService )
         {
             _context = swp;
             _manageProductService = manageProductService;
@@ -533,200 +533,194 @@ namespace BirdPlatFormEcommerce.Controllers
         }
 
 
-        [HttpGet("Revenue_month")]
-        public async Task<IActionResult> GetRevenueMonth()
-        {
+        //[HttpGet("Revenue_month")]
+        //public async Task<IActionResult> GetRevenueMonth()
+        //{
 
-            var userIdClaim = User.Claims.FirstOrDefault(u => u.Type == "UserId");
-            if (userIdClaim == null)
-            {
-                throw new Exception("User not found");
-            }
-            int userid = int.Parse(userIdClaim.Value);
-            var shop = await _context.TbShops.FirstOrDefaultAsync(s => s.UserId == userid);
-            if (shop == null)
-            {
-                throw new Exception("Shop not found");
-            }
-            int shopid = shop.ShopId;
+        //    var userIdClaim = User.Claims.FirstOrDefault(u => u.Type == "UserId");
+        //    if (userIdClaim == null)
+        //    {
+        //        throw new Exception("User not found");
+        //    }
+        //    int userid = int.Parse(userIdClaim.Value);
+        //    var shop = await _context.TbShops.FirstOrDefaultAsync(s => s.UserId == userid);
+        //    if (shop == null)
+        //    {
+        //        throw new Exception("Shop not found");
+        //    }
+        //    int shopid = shop.ShopId;
 
-            int currentYear = DateTime.Now.Year;
-            var query = from od in _context.TbOrderDetails
-                        join p in _context.TbProducts on od.ProductId equals p.ProductId
-                        join s in _context.TbShops on p.ShopId equals s.ShopId
-                        where s.ShopId == shopid
-                        select new TbProfit
-                        {
-                            ShopId = s.ShopId,
-                            Orderdate = (DateTime)od.DateOrder,
-                            OrderDetailId = od.Id,
-                            Total = (decimal)od.Total
-                        };
+        //    int currentYear = DateTime.Now.Year;
+        //    var query = from od in _context.TbOrderDetails
+        //                join p in _context.TbProducts on od.ProductId equals p.ProductId
+        //                join s in _context.TbShops on p.ShopId equals s.ShopId
+        //                where s.ShopId == shopid
+        //                select new TbOrder
+        //                {
+        //                    ShopId = s.ShopId,
 
-            var data = await query.ToListAsync();
+        //                };
 
-            // Khoi tao mang chua kq TotalRevenue của moi thang
-            decimal[] monthlyRevenue = new decimal[12];
+        //    var data = await query.ToListAsync();
 
-            for (int i = 0; i < 12; i++)
-            {
-                DateTime currentMonthStart = new DateTime(currentYear, i + 1, 1);
-                DateTime currentMonthEnd = currentMonthStart.AddMonths(1).AddDays(-1);
+        //    // Khoi tao mang chua kq TotalRevenue của moi thang
+        //    decimal[] monthlyRevenue = new decimal[12];
+
+        //    for (int i = 0; i < 12; i++)
+        //    {
+        //        DateTime currentMonthStart = new DateTime(currentYear, i + 1, 1);
+        //        DateTime currentMonthEnd = currentMonthStart.AddMonths(1).AddDays(-1);
 
                 
               
 
-                // Tính tổng doanh thu của shop trong tháng hiện tại
-                decimal totalRevenue = data.Where(p => p.Orderdate >= currentMonthStart && p.Orderdate <= currentMonthEnd).Sum(p => p.Total ?? 0m);
+        //        // Tính tổng doanh thu của shop trong tháng hiện tại
+        //        decimal totalRevenue = data.Where(p => p.Orderdate >= currentMonthStart && p.Orderdate <= currentMonthEnd).Sum(p => p.Total ?? 0m);
 
-                // Gán đối tượng tháng vào mảng monthlyRevenue
-                monthlyRevenue[i] = totalRevenue;
-            }
+        //        // Gán đối tượng tháng vào mảng monthlyRevenue
+        //        monthlyRevenue[i] = totalRevenue;
+        //    }
 
-            return Ok(monthlyRevenue);
-        }
-
-
-
-        [HttpGet("ToTal_Revenue")]
-        public async Task<IActionResult> GetToTalRevenue()
-        {
-
-            var userIdClaim = User.Claims.FirstOrDefault(u => u.Type == "UserId");
-            if (userIdClaim == null)
-            {
-                throw new Exception("User not found");
-            }
-            int userid = int.Parse(userIdClaim.Value);
-            var shop = await _context.TbShops.FirstOrDefaultAsync(s => s.UserId == userid);
-            if (shop == null)
-            {
-                throw new Exception("Shop not found");
-            }
-            int shopid = shop.ShopId;
+        //    return Ok(monthlyRevenue);
+        //}
 
 
-            var query = from od in _context.TbOrderDetails
-                        join p in _context.TbProducts on od.ProductId equals p.ProductId
-                        join s in _context.TbShops on p.ShopId equals s.ShopId
-                        where s.ShopId == shopid
-                        select new TbProfit
-                        {
-                            ShopId = s.ShopId,
-                            Orderdate =(DateTime)od.DateOrder,
-                            OrderDetailId = od.Id,
-                            Total = (decimal)od.Total
-                        };
 
-            var data = await query.ToListAsync();
+        //[HttpGet("ToTal_Revenue")]
+        //public async Task<IActionResult> GetToTalRevenue()
+        //{
 
-                // Tính tổng doanh thu của shop trong tháng hiện tại
-                decimal totalRevenue = data.Sum(p => p.Total ?? 0m);
+        //    var userIdClaim = User.Claims.FirstOrDefault(u => u.Type == "UserId");
+        //    if (userIdClaim == null)
+        //    {
+        //        throw new Exception("User not found");
+        //    }
+        //    int userid = int.Parse(userIdClaim.Value);
+        //    var shop = await _context.TbShops.FirstOrDefaultAsync(s => s.UserId == userid);
+        //    if (shop == null)
+        //    {
+        //        throw new Exception("Shop not found");
+        //    }
+        //    int shopid = shop.ShopId;
+
+
+        //    var query = from od in _context.TbOrderDetails
+        //                join p in _context.TbProducts on od.ProductId equals p.ProductId
+        //                join s in _context.TbShops on p.ShopId equals s.ShopId
+        //                where s.ShopId == shopid
+        //                select new TbOrder
+        //                {
+        //                    ShopId = s.ShopId,
+
+        //                };
+
+        //    var data = await query.ToListAsync();
+
+        //        // Tính tổng doanh thu của shop trong tháng hiện tại
+        //        decimal totalRevenue = data.Sum(p => p.Total ?? 0m);
 
                
               
             
 
-            return Ok(totalRevenue);
-        }
+        //    return Ok(totalRevenue);
+        //}
 
-        [HttpGet("Revenue_week")]
-        public async Task<IActionResult> GetRevenueWeek()
-        {
-            //lay shopid theo userid dang login
-            var userIdClaim = User.Claims.FirstOrDefault(u => u.Type == "UserId");
-            if (userIdClaim == null)
-            {
-                throw new Exception("User not found");
-            }
-            int userid = int.Parse(userIdClaim.Value);
-            var shop = await _context.TbShops.FirstOrDefaultAsync(s => s.UserId == userid);
-            if (shop == null)
-            {
-                throw new Exception("Shop not found");
-            }
-            int shopid = shop.ShopId;
+        //[HttpGet("Revenue_week")]
+        //public async Task<IActionResult> GetRevenueWeek()
+        //{
+        //    //lay shopid theo userid dang login
+        //    var userIdClaim = User.Claims.FirstOrDefault(u => u.Type == "UserId");
+        //    if (userIdClaim == null)
+        //    {
+        //        throw new Exception("User not found");
+        //    }
+        //    int userid = int.Parse(userIdClaim.Value);
+        //    var shop = await _context.TbShops.FirstOrDefaultAsync(s => s.UserId == userid);
+        //    if (shop == null)
+        //    {
+        //        throw new Exception("Shop not found");
+        //    }
+        //    int shopid = shop.ShopId;
 
-            DateTime today = DateTime.Today;
-            int currentYear = today.Year;
-            int currentWeek = (today.DayOfYear + 6) / 7;
+        //    DateTime today = DateTime.Today;
+        //    int currentYear = today.Year;
+        //    int currentWeek = (today.DayOfYear + 6) / 7;
 
-            var query = from od in _context.TbOrderDetails
-                        join p in _context.TbProducts on od.ProductId equals p.ProductId
-                        join s in _context.TbShops on p.ShopId equals s.ShopId
-                        where s.ShopId == shopid
-                        select new TbProfit
-                        {
-                            ShopId = s.ShopId,
-                            Orderdate = (DateTime)od.DateOrder,
-                            OrderDetailId = od.Id,
-                            Total = (decimal)od.Total
-                        };
+        //    var query = from od in _context.TbOrderDetails
+        //                join p in _context.TbProducts on od.ProductId equals p.ProductId
+        //                join s in _context.TbShops on p.ShopId equals s.ShopId
+        //                where s.ShopId == shopid
+        //                select new TbOrder
+        //                {
+        //                    ShopId = s.ShopId,
+                           
+        //                };
 
-            var data = await query.ToListAsync();
+        //    var data = await query.ToListAsync();
 
-            // Khởi tạo mảng chứa kết quả TotalRevenue của mỗi ngày trong tuần
-            decimal[] dailyRevenue = new decimal[7];
+        //    // Khởi tạo mảng chứa kết quả TotalRevenue của mỗi ngày trong tuần
+        //    decimal[] dailyRevenue = new decimal[7];
 
-            for (int i = 0; i < 7; i++)
-            {
-                DateTime currentDate = FirstDateOfWeek(currentYear, currentWeek).AddDays(i);
+        //    for (int i = 0; i < 7; i++)
+        //    {
+        //        DateTime currentDate = FirstDateOfWeek(currentYear, currentWeek).AddDays(i);
 
-                // Tính tổng doanh thu của shop trong ngày hiện tại
-                decimal totalRevenue = data.Where(p => p.Orderdate.Date== currentDate.Date).Sum(p => p.Total ?? 0m);
+        //        // Tính tổng doanh thu của shop trong ngày hiện tại
+        //        decimal totalRevenue = data.Where(p => p.Orderdate.Date== currentDate.Date).Sum(p => p.Total ?? 0m);
 
-                // Gán giá trị tổng doanh thu vào mảng dailyRevenue
-                dailyRevenue[i] = totalRevenue;
-            }
+        //        // Gán giá trị tổng doanh thu vào mảng dailyRevenue
+        //        dailyRevenue[i] = totalRevenue;
+        //    }
 
-            return Ok(dailyRevenue);
-        }
+        //    return Ok(dailyRevenue);
+        //}
 
-        // Hàm để lấy ngày đầu tiên của tuần dựa trên số tuần và năm
-        public static DateTime FirstDateOfWeek(int year, int week)
-        {
-            DateTime jan1 = new DateTime(year, 1, 1);
-            int daysToFirstDayOfWeek = (int)jan1.DayOfWeek - 1;
+        //// Hàm để lấy ngày đầu tiên của tuần dựa trên số tuần và năm
+        //public static DateTime FirstDateOfWeek(int year, int week)
+        //{
+        //    DateTime jan1 = new DateTime(year, 1, 1);
+        //    int daysToFirstDayOfWeek = (int)jan1.DayOfWeek - 1;
 
-            if (daysToFirstDayOfWeek <= 3)
-            {
-                return jan1.AddDays((week - 1) * 7 - daysToFirstDayOfWeek);
-            }
-            else
-            {
-                return jan1.AddDays(7 - daysToFirstDayOfWeek + (week - 1) * 7);
-            }
-        }
+        //    if (daysToFirstDayOfWeek <= 3)
+        //    {
+        //        return jan1.AddDays((week - 1) * 7 - daysToFirstDayOfWeek);
+        //    }
+        //    else
+        //    {
+        //        return jan1.AddDays(7 - daysToFirstDayOfWeek + (week - 1) * 7);
+        //    }
+        //}
 
-        [HttpGet("orders")]
-        public async Task<ActionResult<List<OrderInfo>>> GetOrdersByShopId()
-        {
-            var userIdclaim = User.Claims.FirstOrDefault(u => u.Type == "UserId");
-            if (userIdclaim == null)
-            {
-                return null;
-            }
-            int userid = int.Parse(userIdclaim.Value);
-            var shop = await _context.TbShops.FirstOrDefaultAsync(s => s.UserId == userid);
-            if (shop == null)
-                return null;
-            int shopid = shop.ShopId;
-            var orders = await _context.TbOrders
-                .Where(o => o.TbOrderDetails.Any(od => od.ToConfirm == 2 && _context.TbProducts.Any(p => p.ProductId == od.ProductId && p.ShopId == shopid)))
-                .Select(o => new OrderInfo
-                {
-                    orderId = o.OrderId,
+        //[HttpGet("orders")]
+        //public async Task<ActionResult<List<OrderInfo>>> GetOrdersByShopId()
+        //{
+        //    var userIdclaim = User.Claims.FirstOrDefault(u => u.Type == "UserId");
+        //    if (userIdclaim == null)
+        //    {
+        //        return null;
+        //    }
+        //    int userid = int.Parse(userIdclaim.Value);
+        //    var shop = await _context.TbShops.FirstOrDefaultAsync(s => s.UserId == userid);
+        //    if (shop == null)
+        //        return null;
+        //    int shopid = shop.ShopId;
+        //    var orders = await _context.TbOrders
+        //        .Where(o => o.TbOrderDetails.Any(od => od.ToConfirm == 2 && _context.TbProducts.Any(p => p.ProductId == od.ProductId && p.ShopId == shopid)))
+        //        .Select(o => new OrderInfo
+        //        {
+        //            orderId = o.OrderId,
                     
-                    OrderDate = (DateTime)o.OrderDate,
-                    UserName = o.User.Name,
-                    Email = o.User.Email,
-                    Status = (bool)o.Status
+        //            OrderDate = (DateTime)o.OrderDate,
+        //            UserName = o.User.Name,
+        //            Email = o.User.Email,
+        //            Status = (bool)o.Status
                     
-                })
-                .ToListAsync();
+        //        })
+        //        .ToListAsync();
 
-            return orders;
-        }
+        //    return orders;
+        //}
 
 
         [HttpGet("Getodershop")]

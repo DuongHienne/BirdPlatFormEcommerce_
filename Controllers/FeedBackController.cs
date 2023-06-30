@@ -1,7 +1,8 @@
 ﻿
 using BirdPlatForm.UserRespon;
 using BirdPlatForm.ViewModel;
-using BirdPlatFormEcommerce.IEntity;
+using BirdPlatFormEcommerce.DEntity;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,9 +13,9 @@ namespace BirdPlatForm.Controllers
     [ApiController]
     public class FeedBackController : ControllerBase
     {
-        private readonly SwpContextContext _context;
+        private readonly DataswpContext _context;
 
-        public FeedBackController(SwpContextContext bird)
+        public FeedBackController(DataswpContext bird)
         {
             _context = bird;
 

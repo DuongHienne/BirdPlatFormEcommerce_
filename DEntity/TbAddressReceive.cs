@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace BirdPlatFormEcommerce.IEntity;
+namespace BirdPlatFormEcommerce.DEntity;
 
 public partial class TbAddressReceive
 {

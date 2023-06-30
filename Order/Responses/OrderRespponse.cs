@@ -1,4 +1,4 @@
-﻿using BirdPlatFormEcommerce.IEntity;
+﻿using BirdPlatFormEcommerce.DEntity;
 using BirdPlatFormEcommerce.Payment.Responses;
 
 namespace BirdPlatFormEcommerce.Order.Responses
@@ -16,12 +16,14 @@ namespace BirdPlatFormEcommerce.Order.Responses
         public decimal TotalPrice { get; set; }
 
         public DateTime? OrderDate { get; set; }
-
+        public int ShopId { get; set; }
         public virtual PaymentResponse? Payment { get; set; }
 
         public virtual ICollection<OrderDetailResponse> Items { get; set; } = new List<OrderDetailResponse>();
 
+       
     }
+    
     public class OrderResponses
     {
         public int OrderId { get; set; }
@@ -128,5 +130,10 @@ namespace BirdPlatFormEcommerce.Order.Responses
         public decimal Total { get; set; }
         public string FirstImagePath { get; set; }
 
+    }
+    public class UserResult
+    {
+        public int OrderID { get; set; }
+        public List<UserOder> useroder { get; set; }
     }
 }

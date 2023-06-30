@@ -1,4 +1,4 @@
-﻿using BirdPlatFormEcommerce.IEntity;
+﻿using BirdPlatFormEcommerce.DEntity;
 using BirdPlatFormEcommerce.Order.Requests;
 using BirdPlatFormEcommerce.Payment;
 
@@ -6,7 +6,7 @@ namespace BirdPlatFormEcommerce.Order
 {
     public interface IOrderService
     {
-        public Task<TbOrder> CreateOrder(int userId, CreateOrderModel orderModel);
+        public Task<List<TbOrder>> CreateOrder(int userId, CreateOrderModel orderModel);
 
         public Task<TbOrder?> GetOrder(int orderId);
 

@@ -1,4 +1,4 @@
-﻿using BirdPlatFormEcommerce.IEntity;
+﻿using BirdPlatFormEcommerce.DEntity;
 using BirdPlatFormEcommerce.Helper.Mail;
 using BirdPlatFormEcommerce.Order.Requests;
 using BirdPlatFormEcommerce.Payment;
@@ -12,11 +12,11 @@ namespace BirdPlatFormEcommerce.Order
 {
     public class OrderService : IOrderService
     {
-        private readonly SwpContextContext _context;
+        private readonly DataswpContext _context;
         private readonly IVnPayService _vnPayService;
         private readonly IMailService _mailService;
 
-        public OrderService(SwpContextContext context, IVnPayService vnPayService, IMailService mailService)
+        public OrderService(DataswpContext context, IVnPayService vnPayService, IMailService mailService)
         {
             _context = context;
             _vnPayService = vnPayService;
@@ -44,16 +44,7 @@ namespace BirdPlatFormEcommerce.Order
 
                 _context.TbProducts.Update(product);
 
-                // Create profit
-                var profit = new TbProfit
-                {
-                    OrderDetailId = order.OrderId,
-                    Total = item.Total,
-                    ShopId = (int)product.ShopId,
-                    Orderdate = (DateTime)order.OrderDate,
-                };
-
-                _context.TbProfits.Update(profit);
+              
             }
 
             order.Status = true;
@@ -90,17 +81,36 @@ namespace BirdPlatFormEcommerce.Order
             return order;
         }
 
-        public async Task<TbOrder> CreateOrder(int userId, CreateOrderModel orderModel)
+        private TbOrderDetail CreateOrderItem(TbProduct product, int quantity)
         {
+            var orderItem = new TbOrderDetail
+            {
+                ProductId = product.ProductId,
+                Quantity = quantity,
+                ProductPrice = product.Price,
+                DiscountPrice = (1 - product.DiscountPercent * (decimal)0.01) * product.Price,
+                ToConfirm = 1,
+                
+            };
 
+            orderItem.Total = orderItem.DiscountPrice * quantity;
+
+            return orderItem;
+        }
+
+
+        public async Task<List<TbOrder>> CreateOrder(int userId, CreateOrderModel orderModel)
+        {
             // validate user
             var user = await _context.TbUsers.FirstOrDefaultAsync(u => u.UserId == userId);
             if (user == null)
             {
                 throw new Exception("User not found");
             }
-           
-            var items = new List<TbOrderDetail>();
+
+            var orders = new List<TbOrder>(); // Lưu trữ danh sách các đơn hàng đã tạo
+
+            // Tạo đơn hàng cho từng sản phẩm
             foreach (var requestItem in orderModel.Items)
             {
                 var quantity = requestItem.Quantity;
@@ -117,21 +127,38 @@ namespace BirdPlatFormEcommerce.Order
                     throw new Exception($"Product {productId} is out of stock");
                 }
 
-                var orderItem = new TbOrderDetail
+                // Kiểm tra xem đã có đơn hàng cho shop tương ứng chưa
+                var existingOrder = orders.FirstOrDefault(o => o.ShopId == product.ShopId);
+
+                if (existingOrder != null)
                 {
-                    ProductId = productId,
-                    Quantity = quantity,
-                    ProductPrice = product.Price,
-                    DiscountPrice = (1 - product.DiscountPercent * (decimal)0.01) * product.Price,
-                    ToConfirm = 1,
-                    DateOrder= DateTime.Now,
-                };
-
-                orderItem.Total = orderItem.DiscountPrice * quantity;
-
-                items.Add(orderItem);
+                    // Nếu đã có đơn hàng cho shop này, thêm sản phẩm vào đơn hàng đã có
+                    var orderItem = CreateOrderItem(product, quantity);
+                    existingOrder.TbOrderDetails.Add(orderItem);
+                    existingOrder.TotalPrice += orderItem.Total ?? 0;
+                }
+                else
+                {
+                    // Nếu chưa có đơn hàng cho shop này, tạo đơn hàng mới
+                    var orderItem = CreateOrderItem(product, quantity);
+                    var order = CreateNewOrder(userId, orderModel, orderItem, product.ShopId);
+                    orders.Add(order);
+                }
             }
 
+            // Lưu các đơn hàng vào cơ sở dữ liệu
+            foreach (var order in orders)
+            {
+                await _context.TbOrders.AddAsync(order);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return orders;
+        }
+
+        private TbOrder CreateNewOrder(int userId, CreateOrderModel orderModel, TbOrderDetail orderItem, int? shopId)
+        {
             var order = new TbOrder()
             {
                 UserId = userId,
@@ -139,22 +166,10 @@ namespace BirdPlatFormEcommerce.Order
                 OrderDate = DateTime.Now,
                 Note = orderModel.Note,
                 AddressId = (int)orderModel.AddressID,
-                TbOrderDetails = items,
-                TotalPrice = items.Sum(item => item.Total ?? 0)
+                TbOrderDetails = new List<TbOrderDetail> { orderItem },
+                TotalPrice = orderItem.Total ?? 0,
+                ShopId = (int)shopId
             };
-
-
-            await _context.TbOrders.AddAsync(order);
-            await _context.SaveChangesAsync();
-            int orderId = order.OrderId;
-
-            // Cập nhật addressId trong bảng tb_Address cho orderId tương ứng
-            var address = await _context.TbOrders.FirstOrDefaultAsync(a => a.AddressId == orderModel.AddressID);
-            if (address != null)
-            {
-                order.AddressId = address.AddressId;
-                await _context.SaveChangesAsync();
-            }
 
             return order;
         }

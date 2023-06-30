@@ -10,6 +10,7 @@ namespace BirdPlatFormEcommerce.Order.Requests
 
         public string? Note { get; set; }
         public int? AddressID { get; set; }
+        
     }
 
     public class OrderDetailModel
@@ -20,5 +21,6 @@ namespace BirdPlatFormEcommerce.Order.Requests
         [Required]
         [Range(1, Int32.MaxValue)]
         public int Quantity { get; set; }
+       
     }
 }

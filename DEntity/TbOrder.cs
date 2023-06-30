@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace BirdPlatFormEcommerce.IEntity;
+namespace BirdPlatFormEcommerce.DEntity;
 
 public partial class TbOrder
 {
@@ -21,9 +21,13 @@ public partial class TbOrder
 
     public int AddressId { get; set; }
 
+    public int ShopId { get; set; }
+
     public virtual TbAddressReceive Address { get; set; } = null!;
 
     public virtual TbPayment? Payment { get; set; }
+
+    public virtual TbShop Shop { get; set; } = null!;
 
     public virtual ICollection<TbOrderDetail> TbOrderDetails { get; set; } = new List<TbOrderDetail>();
 

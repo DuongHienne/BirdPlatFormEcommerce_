@@ -1,6 +1,6 @@
 ﻿using BirdPlatForm.UserRespon;
 using BirdPlatForm.ViewModel;
-using BirdPlatFormEcommerce.IEntity;
+using BirdPlatFormEcommerce.DEntity;
 using BirdPlatFormEcommerce.ViewModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,9 +14,9 @@ namespace BirdPlatFormEcommerce.Controllers
     [Authorize(Roles = "AD")]
     public class AdminController : ControllerBase
     {
-        private readonly SwpContextContext _context;
+        private readonly DataswpContext _context;
 
-        public AdminController(SwpContextContext swp)
+        public AdminController(DataswpContext swp)
         {
             _context = swp;
         }

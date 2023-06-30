@@ -1,6 +1,6 @@
 ﻿
 using Azure.Core;
-using BirdPlatFormEcommerce.IEntity;
+using BirdPlatFormEcommerce.DEntity;
 using BirdPlatFormEcommerce.Helper;
 using BirdPlatFormEcommerce.Product;
 using Microsoft.AspNetCore.Http;
@@ -20,13 +20,13 @@ namespace BirdPlatFormEcommerce.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        private readonly SwpContextContext _context;
+        private readonly DataswpContext _context;
         private readonly IHomeViewProductService _homeViewProductService;
         private readonly IManageProductService _manageProductService;
         private readonly IWebHostEnvironment _enviroment;
       
 
-        public ProductsController(SwpContextContext context, IHomeViewProductService homeViewProductService, IManageProductService manageProductService,
+        public ProductsController(DataswpContext context, IHomeViewProductService homeViewProductService, IManageProductService manageProductService,
             IWebHostEnvironment environment)
         {
             _context = context;

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace BirdPlatFormEcommerce.IEntity;
+namespace BirdPlatFormEcommerce.DEntity;
 
 public partial class TbFeedback
 {
@@ -15,9 +15,9 @@ public partial class TbFeedback
 
     public string? Detail { get; set; }
 
-    public string? Image { get; set; }
-
     public virtual TbProduct Product { get; set; } = null!;
+
+    public virtual ICollection<TbFeedbackImage> TbFeedbackImages { get; set; } = new List<TbFeedbackImage>();
 
     public virtual TbUser User { get; set; } = null!;
 }

@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="IEntity\" />
+    <Folder Include="DEntity\" />
     <Folder Include="wwwroot\user-content\user\" />
   </ItemGroup>
 

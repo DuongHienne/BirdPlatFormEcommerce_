@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace BirdPlatFormEcommerce.IEntity;
+namespace BirdPlatFormEcommerce.DEntity;
 
 public partial class TbOrderDetail
 {
@@ -20,11 +20,12 @@ public partial class TbOrderDetail
     public decimal? DiscountPrice { get; set; }
 
     public decimal? Total { get; set; }
-    public int ToConfirm { get; set; }
-    public DateTime? DateOrder { get; set; }
+
+    public DateTime? OrderDate { get; set; }
+
+    public int? ToConfirm { get; set; }
+
     public virtual TbOrder Order { get; set; } = null!;
 
     public virtual TbProduct Product { get; set; } = null!;
-
-    public virtual ICollection<TbProfit> TbProfits { get; set; } = new List<TbProfit>();
 }
