@@ -22,74 +22,87 @@ namespace BirdPlatFormEcommerce.Order
             _vnPayService = vnPayService;
             _mailService = mailService;
         }
-        public async Task<TbOrder> CompleteOrder(TbOrder order)
+        public async Task<List<TbOrder>> CompleteOrder(List<int> order)
         {
             // Update product quantity
-            var orderDetails = order.TbOrderDetails;
+            var orders = await GetOrders(order);
 
-            foreach (var item in orderDetails)
+            foreach (var orderDetail in orders)
             {
-                var product = _context.TbProducts.FirstOrDefault(prod => prod.ProductId == item.ProductId);
-                if (product == null)
+                var orderDetails = orderDetail.TbOrderDetails;
+                foreach (var item in orderDetails)
                 {
-                    throw new Exception("Product not found");
+                    var product = _context.TbProducts.FirstOrDefault(prod => prod.ProductId == item.ProductId);
+                    if (product == null)
+                    {
+                        throw new Exception("Product not found");
+                    }
+                    if (product.Quantity < item.Quantity)
+                    {
+                        throw new Exception($"Product {product.ProductId} is out of stock");
+                    }
+
+                    product.Quantity -= item.Quantity;
+                    product.QuantitySold += item.Quantity;
+
+                    _context.TbProducts.Update(product);
+
                 }
-                if (product.Quantity < item.Quantity)
-                {
-                    throw new Exception($"Product {product.ProductId} is out of stock");
-                }
-
-                product.Quantity -= item.Quantity;
-                product.QuantitySold += item.Quantity;
-
-                _context.TbProducts.Update(product);
-
-                // Create profit
-                var profit = new TbProfit
-                {
-                    OrderDetailId = order.OrderId,
-                    Total = (int)item.Total,
-                    ShopId = (int)product.ShopId,
-                    Orderdate = (DateTime)order.OrderDate,
-                };
-
-                
+                orderDetail.ToConfirm = 2;
+                orderDetail.Status = true;
+                _context.TbOrders.Update(orderDetail);
             }
 
-            order.Status = true;
-            _context.TbOrders.Update(order);
-
-            // save changes
-           
-
-            // send email
             string listProductHtml = "";
-            foreach (TbOrderDetail item in order.TbOrderDetails)
+            decimal total = 0;
+            var processedOrderIds = new List<int>();
+            foreach (var order1 in orders)
             {
-                item.ToConfirm = 2;
+                if (!processedOrderIds.Contains(order1.OrderId))
+                {
+                    total = total + order1.TotalPrice;
+                    processedOrderIds.Add(order1.OrderId);
+                    foreach (TbOrderDetail item in order1.TbOrderDetails)
+                    {
+                        listProductHtml += $"<li>{item.Product?.Name} - <del>{item.ProductPrice:n0}</del> $ {item.DiscountPrice:n0} $ - x{item.Quantity}</li>";
 
-                listProductHtml += $"<li>{item.Product?.Name} - <del>{item.ProductPrice:n0}</del> VND {item.DiscountPrice:n0} VND - x{item.Quantity}</li>";
+                    }
+                }
+                if (processedOrderIds.Count == orders.Count)
+                {
+                    var toEmail = order1.User?.Email ?? string.Empty;
+                    var emailBody = $@"<div><h3>THÔNG TIN ĐƠN HÀNG CỦA BẠN </h3> 
+                        <ul>{listProductHtml} </ul>
+                        <div>
+                            <span>Tổng tiền: </span> <strong>{total:n0} VND</strong>
+                        </div>
+                        <p>Xin trân trọng cảm ơn</p>
+                    </div>";
+
+                    var mailRequest = new MailRequest()
+                    {
+                        ToEmail = toEmail,
+                        Subject = "[BIRD TRADING PLATFORM] THANH TOÁN THÀNH CÔNG",
+                        Body = emailBody
+                    };
+
+
+                    await _mailService.SendEmailAsync(mailRequest);
+                    _context.SaveChanges();
+
+                }
+
             }
-            var emailBody = $@"<div><h3>THÔNG TIN ĐƠN HÀNG CỦA BẠN </h3> 
-                                    <ul>{listProductHtml} </ul>
-                                <div>
-                                    <span>Tổng tiền: </span> <strong>{order.TotalPrice:n0} VND</strong>
-                                </div>
-                                <p>Xin trân trọng cảm ơn</p>
-                                </div>";
 
-            var mailRequest = new MailRequest()
-            {
-                ToEmail = order.User.Email ?? string.Empty,
-                Subject = "[BIRD TRADING PALTFORM] THANH TOÁN THÀNH CÔNG",
-                Body = emailBody
-            };
-            _context.SaveChanges();
-            await _mailService.SendEmailAsync(mailRequest);
 
-            return order;
+
+
+
+            return orders;
+
+
+
         }
-
         public async Task<List<TbOrder>> CreateOrder(int userId, CreateOrderModel orderModel)
         {
             // validate user
@@ -175,7 +188,8 @@ namespace BirdPlatFormEcommerce.Order
                 AddressId = (int)orderModel.AddressID,
                 TbOrderDetails = new List<TbOrderDetail> { orderItem },
                 TotalPrice = orderItem.Total ?? 0,
-                ShopId = (int)shopId
+                ShopId = (int)shopId,
+                ToConfirm = 0,
             };
 
             return order;
@@ -190,13 +204,71 @@ namespace BirdPlatFormEcommerce.Order
                 .FirstOrDefaultAsync(order => order.OrderId == orderId);
         }
 
-        public async Task<TbOrder?> GetOrderByPaymentId(int paymentId)
+        public async Task<List<TbOrder>> GetOrderByPaymentId(int paymentId)
         {
-            return await _context.TbOrders.Include(order => order.TbOrderDetails)
-                            .ThenInclude(orderItem => orderItem.Product)
-                            .Include(order => order.Payment)
-                            .Include(order => order.User)
-                            .FirstOrDefaultAsync(order => order.PaymentId == paymentId);
+            return await _context.TbOrders
+              .Where(order => order.PaymentId == paymentId)
+              .ToListAsync();
+        }
+        public async Task<List<TbOrder>> GetOrders(List<int> orderIds)
+        {
+            var orders = await _context.TbOrders
+                .Include(order => order.TbOrderDetails)
+                 .ThenInclude(orderItem => orderItem.Product)
+                .Include(order => order.Payment)
+                .Include(order => order.User)
+                .Where(order => orderIds.Contains(order.OrderId))
+                .ToListAsync();
+
+            // Kiểm tra xem có bất kỳ đơn hàng nào là NULL không
+            if (orders.Any(order => order == null))
+            {
+                throw new Exception("One or more orders not found");
+            }
+
+            return orders;
+        }
+
+        public async Task<string?> PayOrders(List<int> orderIds, PaymentMethod method)
+        {
+            var orders = await GetOrders(orderIds);
+            if (orders == null || orders.Any(o => o.Status == true))
+            {
+                throw new Exception("Order(s) not found or invalid status");
+            }
+            decimal total = 0;
+            foreach (var order in orders)
+            {
+                total = total + order.TotalPrice;
+            }
+
+
+            var payment = new TbPayment()
+            {
+                UserId = orders.First().UserId, // Lấy UserId từ Order đầu tiên (giả sử cùng User)
+                PaymentMethod = method.ToString(),
+                PaymentDate = DateTime.Now,
+                Amount = total // Sử dụng tổng TotalPrice làm Amount
+            };
+            var paymentId = _context.TbPayments.Update(payment);
+            await _context.SaveChangesAsync();
+            // Cập nhật PaymentId vào cơ sở dữ liệu
+
+            foreach (var order in orders)
+            {
+
+                order.PaymentId = payment.PaymentId; // Gán PaymentId cho mỗi Order
+                await _context.SaveChangesAsync();
+            }
+
+
+            // Cập nhật PaymentId vào cơ sở dữ liệu
+
+            var paymentUrl = PaymentMethod.VnPay.Equals(method)
+                ? _vnPayService.CreatePaymentUrl(payment)
+                : null;
+
+            return paymentUrl;
         }
 
         public async Task<string?> PayOrder(TbOrder order, PaymentMethod method)
@@ -212,8 +284,8 @@ namespace BirdPlatFormEcommerce.Order
             };
 
             order.Payment = payment;
-            
-            
+
+
             _context.TbOrders.Update(order);
             await _context.SaveChangesAsync();
 
@@ -239,14 +311,14 @@ namespace BirdPlatFormEcommerce.Order
              .ThenInclude(product => product.Shop) // Nạp thông tin bảng Shop vào Product
          .Include(order => order.Payment)
          .Include(order => order.User)
-         .Include(addr =>  addr.Address)
+         .Include(addr => addr.Address)
          .Where(order => order.UserId == userId && order.TbOrderDetails.Any(item => item.ToConfirm == toConfirm))
          .ToListAsync();
         }
 
         public Task<List<TbOrderDetail>> Orderservice(int shopid)
         {
-            var orders = _context.TbOrderDetails.                         
+            var orders = _context.TbOrderDetails.
                 Where(o => o.ToConfirm == 2)
                 .Select(od => new
                 {
@@ -254,7 +326,7 @@ namespace BirdPlatFormEcommerce.Order
                     ShopId = _context.TbProducts
                     .Where(p => p.ProductId == od.ProductId)
                     .Select(p => p.ShopId).FirstOrDefault()
-                }) 
+                })
                 .Where(shop => shop.ShopId == shopid)
                 .Select(shop => shop.TbOrderDetail).ToListAsync();
             return orders;

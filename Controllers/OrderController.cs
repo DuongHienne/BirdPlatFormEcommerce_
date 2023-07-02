@@ -70,74 +70,106 @@ namespace BirdPlatFormEcommerce.Controllers
             return Ok(response);
         }
 
-        [HttpPost("{id:int}/Pay/")]
+        [HttpPost("Pay")]
         [Authorize]
-        public async Task<ActionResult<PaymentResponse>> CreatePayment([FromRoute] int id, [FromBody] PayOrderModel request)
+        public async Task<ActionResult<PaymentResponse>> CreatePayment([FromBody] PayOrderModel request)
         {
-            var order = await _orderService.GetOrder(id);
-            if (order == null || order.Status == true)
+            var orders = await _orderService.GetOrders(request.OrderIds);
+            if (orders == null || orders.Any(o => o.Status == true))
             {
-
-                return NotFound("Order not found");
+                return NotFound("Order(s) not found");
             }
 
-            if (request.Method.ToString() == "Cash")
+            var processedOrderIds = new List<int>(); // Danh sách các OrderId đã được xử lý
+            string listProductHtml = "";
+            decimal total = 0;
+
+            foreach (var order in orders)
             {
-                foreach (TbOrderDetail item in order.TbOrderDetails)
+                if (request.Method.ToString() == "Cash")
+                {
+                    order.ToConfirm = 2;
+                }
+
+
+
+
+                // Gửi email chỉ khi OrderId chưa được xử lý trước đó
+                if (!processedOrderIds.Contains(order.OrderId))
+                {
+                    total = total + order.TotalPrice;
+                    processedOrderIds.Add(order.OrderId);
+                    foreach (TbOrderDetail item in order.TbOrderDetails)
+                    {
+                        listProductHtml += $"<li>{item.Product?.Name} - <del>{item.ProductPrice:n0}</del> $ {item.DiscountPrice:n0} $ - x{item.Quantity}</li>";
+
+                    }
+                }
+                if (processedOrderIds.Count == orders.Count)
                 {
 
-                    item.ToConfirm = 2;
+                    // Xây dựng phần nội dung email cho OrderId hiện tại
+
+
+                    var toEmail = order.User?.Email ?? string.Empty;
+                    var emailBody = $@"<div><h3>THÔNG TIN ĐƠN HÀNG CỦA BẠN </h3> 
+                        <ul>{listProductHtml} </ul>
+                        <div>
+                            <span>Tổng tiền: </span> <strong>{total:n0} VND</strong>
+                        </div>
+                        <p>Xin trân trọng cảm ơn</p>
+                    </div>";
+
+                    var mailRequest = new MailRequest()
+                    {
+                        ToEmail = order.User.Email ?? string.Empty,
+                        Subject = "[BIRD TRADING PLATFORM] XÁC NHẬN ĐƠN HÀNG",
+                        Body = emailBody
+                    };
+
+
+                    await _mailService.SendEmailAsync(mailRequest);
+
+                }
+
+
+
+                if (processedOrderIds.Count == orders.Count)
+                {
+                    _context.SaveChanges();
+                    var paymentUrl = await _orderService.PayOrders(processedOrderIds, request.Method);
+                    var response = _mapper.Map<PaymentResponse>(order.Payment);
+                    response.PaymentUrl = paymentUrl;
+                    return Ok(response);
                 }
             }
-            var paymentUrl = await _orderService.PayOrder(order, request.Method);
 
-            // send confirmation email
-            string listProductHtml = "";
-            foreach (TbOrderDetail item in order.TbOrderDetails)
-            {
+            return NotFound("Order(s) not found");
 
-                listProductHtml += $"<li>{item.Product?.Name} - <del>{item.ProductPrice:n0}</del> $ {item.DiscountPrice:n0} $ - x{item.Quantity}</li>";
-            }
-            var emailBody = $@"<div><h3>THÔNG TIN ĐƠN HÀNG CỦA BẠN </h3> 
-                                    <ul>{listProductHtml} </ul>
-                                <div>
-                                    <span>Tổng tiền: </span> <strong>{order.TotalPrice:n0} VND</strong>
-                                </div>
-                                <p>Xin trân trọng cảm ơn</p>
-                                </div>";
 
-            var mailRequest = new MailRequest()
-            {
-                ToEmail = order.User.Email ?? string.Empty,
-                Subject = "[BIRD TRADING PALTFORM] XÁC NHẬN ĐƠN HÀNG",
-                Body = emailBody
-            };
-            _context.SaveChanges();
-            await _mailService.SendEmailAsync(mailRequest);
 
-            var response = _mapper.Map<PaymentResponse>(order.Payment);
-            response.PaymentUrl = paymentUrl;
-
-            return Ok(response);
         }
 
         [HttpGet("PaymentCallback/{paymentId:int}")]
         public async Task<ActionResult> PaymentCallback([FromRoute] int paymentId, [FromQuery] VnPaymentCallbackModel request)
         {
-
+            var orders = await _orderService.GetOrderByPaymentId(paymentId);
             if (!request.Success)
             {
-
                 return Redirect(_configuration["Payment:Failed"]);
             }
-
-            var order = await _orderService.GetOrderByPaymentId(paymentId);
-            if (order == null || order.Status == true)
+            var processedOrderIds = new List<int>();
+            foreach (var order in orders)
             {
-                return NotFound("Order not found");
+                processedOrderIds.Add(order.OrderId);
+                if (order == null || order.Status == true)
+                {
+                    return NotFound("Order not found");
+                }
             }
 
-            await _orderService.CompleteOrder(order);
+
+            await _orderService.CompleteOrder(processedOrderIds);
 
             return Redirect(_configuration["Payment:SuccessUrl"]);
 
