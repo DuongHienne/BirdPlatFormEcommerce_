@@ -278,6 +278,7 @@ namespace BirdPlatFormEcommerce.Controllers
                     {
                         Id = od.Id,
                         ProductId = od.ProductId,
+                        OrderDetailID = od.Id,
                         ProductName = od.Product.Name,
                         Quantity = od.Quantity,
                         Discount = od.Discount,

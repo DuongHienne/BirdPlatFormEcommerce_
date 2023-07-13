@@ -15,7 +15,7 @@
         public int ShopId { get; set; }
         public string ShopName { get; set; }
         public int? QuantitySold { get; set; }
-
+        public int? Quantity { get; set; }
         public int? Rate { get; set; }
 
         public string? Address { get; set; }

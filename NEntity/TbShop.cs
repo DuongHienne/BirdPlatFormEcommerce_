@@ -20,7 +20,7 @@ public partial class TbShop
     public DateTime? CreateDate { get; set; }
 
     public string? Address { get; set; }
-    public string? AddressDetail { get; set; }
+    public string AddressDetail { get; set; }
     public string? Phone { get; set; }
 
     public virtual ICollection<TbOrder> TbOrders { get; set; } = new List<TbOrder>();
